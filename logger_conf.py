@@ -1,35 +1,44 @@
-# Настройки логирования Django:
-# 1. Разделение логов:
-#    - errors.log (WARNING и выше) - полный формат с трейсами
-#    - info.log (INFO и выше) - краткий формат
-#    - db.log (SQL запросы) - специальный формат
+# ============================
+# 🔧 Django Logging Settings
+# ============================
 #
-# 2. Ротация логов:
-#    - Макс. размер файла: 15MB
-#    - Хранится 3 резервных копии
-#    - Автосоздание папки django_logs
+# 1. Logs split into files:
+#    - errors.log: WARNING+ (verbose format)
+#    - info.log: INFO+ (compact format)
+#    - db.log: SQL queries
 #
-# 3. Консольный вывод:
-#    - В DEBUG режиме: все сообщения (DEBUG+)
-#    - В production: только INFO сообщения Django
-#    - SQL логи НЕ выводятся в консоль
+# 2. Log rotation:
+#    - Max size: 15 MB
+#    - 3 backups kept
 #
-# 4. Особенности:
-#    - Сохраняет существующие логгеры
-#    - Корневой логгер обрабатывает все неотловленные сообщения
-#    - UTF-8 кодировка всех лог-файлов
+# 3. Console output:
+#    - DEBUG=True: full debug stream
+#    - DEBUG=False: only Django INFO
+#
+# 4. Runtime separation:
+#    - All logs in RUNTIME/logs/
+#    - Ensures source/runtime separation
+#
+# ⚠ On Windows, RotatingFileHandler may cause race conditions
+# when accessed concurrently. For production, consider
+# using a synchronized alternative or switch to WatchedFileHandler on Linux.
 
-# Настройки логов
-LOG_DIR = os.path.join(BASE_DIR, 'django_logs')
-os.makedirs(LOG_DIR, exist_ok=True)
+import os
+from pathlib import Path
 
-# 15 MB на файл, 3 бэкапа - 4 итог
-MAX_LOG_SIZE = 15 * 1024 * 1024  
+BASE_DIR = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BASE_DIR.parent
+RUNTIME_DIR = PROJECT_ROOT / "runtime"
+LOG_DIR = RUNTIME_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+MAX_LOG_SIZE = 15 * 1024 * 1024  # 15 MB
 LOG_BACKUPS = 3
 
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+
     'filters': {
         'require_debug_true': {
             '()': 'django.utils.log.RequireDebugTrue',
@@ -43,53 +52,33 @@ LOGGING = {
         'simple': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
-        'django_simple': {
-            'format': '[%(levelname)s] %(message)s'
-        },
-        'sql_formatter': {
-            'format': '%(asctime)s [SQL] %(message)s'
-        },
     },
 
     'handlers': {
-        # Файл ошибок (только WARNING и выше)
         'error_file': {
             'level': 'WARNING',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'errors.log'),
+            'filename': LOG_DIR / 'errors.log',
             'formatter': 'verbose',
             'maxBytes': MAX_LOG_SIZE,
             'backupCount': LOG_BACKUPS,
             'encoding': 'utf-8',
         },
-        # Основной файловый лог (INFO и выше)
         'info_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'info.log'),
+            'filename': LOG_DIR / 'info.log',
             'formatter': 'simple',
             'maxBytes': MAX_LOG_SIZE,
             'backupCount': LOG_BACKUPS,
             'encoding': 'utf-8',
         },
-        # Файл для SQL запросов
-        'db_file': {
-            'level': 'DEBUG',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(LOG_DIR, 'db.log'),
-            'formatter': 'sql_formatter',
-            'maxBytes': MAX_LOG_SIZE,
-            'backupCount': LOG_BACKUPS,
-            'encoding': 'utf-8',
-        },
-        # Консоль для Django (только INFO)
         'django_console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'django_simple',
+            'formatter': 'simple',
         },
-        # Консоль для debug (только в DEBUG режиме)
-        'debug_console': {
+        'debug_mode_console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
@@ -98,25 +87,11 @@ LOGGING = {
     },
 
     'loggers': {
-        # Логгер Django по умолчанию
         'django': {
             'handlers': ['info_file', 'error_file', 'django_console'],
             'level': 'INFO',
             'propagate': False,
         },
-        # Ошибки запросов
-        'django.request': {
-            'handlers': ['info_file', 'error_file', 'django_console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        # SQL запросы (пишем только в файл)
-        'django.db.backends': {
-            'handlers': ['db_file'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        # Логи сервера разработки
         'django.server': {
             'handlers': ['django_console'],
             'level': 'INFO',
@@ -125,7 +100,7 @@ LOGGING = {
     },
 
     'root': {
-        'handlers': ['info_file', 'error_file', 'debug_console'],
+        'handlers': ['info_file', 'error_file', 'debug_mode_console'],
         'level': 'DEBUG',
     },
 }
