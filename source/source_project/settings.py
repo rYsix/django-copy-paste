@@ -4,11 +4,11 @@ from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
 
 # =============================
-# Base Directory Configuration
+# Source Directory Configuration
 # =============================
 
-BASE_DIR = Path(__file__).resolve().parent.parent  # /source
-PROJECT_ROOT = BASE_DIR.parent                     # /
+SOURCE_DIR = Path(__file__).resolve().parent.parent   # /source
+PROJECT_ROOT = SOURCE_DIR.parent                      # /
 
 load_dotenv(PROJECT_ROOT / ".env")
 
@@ -81,7 +81,7 @@ APPEND_SLASH = True
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [SOURCE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -146,9 +146,7 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "filters": {
-        "require_debug_true": {
-            "()": "django.utils.log.RequireDebugTrue",
-        },
+        "require_debug_true": {"()": "django.utils.log.RequireDebugTrue"},
     },
     "formatters": {
         "verbose": {
@@ -251,7 +249,7 @@ else:
 # =============================
 
 STATIC_URL = "/static/"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+STATICFILES_DIRS = [SOURCE_DIR / "static"]
 STATIC_ROOT = os.getenv("STATIC_ROOT", RUNTIME_DIR / "staticfiles")
 
 MEDIA_URL = "/media/"
