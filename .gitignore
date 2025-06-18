@@ -9,7 +9,7 @@ __pycache__/
 *.pot
 *.sqlite3
 *.db
-db.sqlite3
+runtime/db.sqlite3
 
 # Environment
 .env
